@@ -9,6 +9,10 @@ const Predict = () => {
     const [isPredicting, setIsPredicting] = useState(false);
     const [result, setResult] = useState(null);
 
+    const validProjects = Array.isArray(profile.projects)
+        ? profile.projects.filter(project => (project.projectName || '').trim() || (project.description || '').trim())
+        : [];
+
     const calculateProbability = (company) => {
         let prob = 30; // Base
 
@@ -31,7 +35,7 @@ const Predict = () => {
         else prob -= 15;
 
         // Projects
-        if (profile.projects && profile.projects.length > 20) prob += 5;
+        if (validProjects.length > 0) prob += 5;
 
         // Difficulty adjustment
         if (company.difficulty === 'High') prob -= 20;
@@ -61,7 +65,7 @@ const Predict = () => {
                 weakness: [
                     profile.cgpa < 7.5 ? 'Academic Score needs improvement' : null,
                     profile.skills.length < 3 ? 'Limited skill set' : null,
-                    !profile.projects ? 'No projects listed' : null
+                    validProjects.length === 0 ? 'No projects listed' : null
                 ].filter(Boolean),
                 suggestions: [
                     prob < 60 ? 'Consider certifications in missing domains' : 'Practice mock interviews',
