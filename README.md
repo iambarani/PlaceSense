@@ -1,36 +1,34 @@
-# PlaceSense - Advanced Placement Prediction System
+# PlaceSense - Unified Next.js AI Predictor
 
-PlaceSense is a modernized placement preparation and prediction platform for students and faculty. It features a robust SQL backend and an ML-enhanced prediction engine to help students identify their readiness for top-tier companies.
+PlaceSense is an AI-driven placement prediction platform, now consolidated into a modern **Next.js App Router** architecture.
 
-## Recent Updates (March 2026)
+## 🚀 Unified Architecture (Next.js)
 
-### 🚀 SQL Backend Integration
-- **Node.js/Express Server**: A new full-stack backend handles data persistence via MySQL.
-- **Relational Data Mapping**: Student profiles are now constructed from multiple joined tables including `students`, `school_academics`, `college_academics`, and `student_experience`.
-- **RESTful API**: Professional API endpoints for profile management, company lookups, and prediction history.
-
-### 🧠 ML-Enhanced Placement Prediction
-- **Weighted Scoring Model**: Evaluation using weighted factors (CGPA, Skill Match, Projects) compared against real company criteria (`company_expectations`).
-- **Explainable AI (XAI)**: A new "Model Insights" section in the UI provides transparency into the prediction algorithm's decision-making process.
-- **Dynamic Action Plans**: Strategic career roadmaps are generated based on identified skill gaps and academic history.
+We have migrated from a split Vite + Express setup to a single, high-performance framework:
+- **Zero-Latency API Routes**: Backend logic is now integrated directly into the `src/app/api` directory.
+- **Modern Routing**: Uses the Next.js App Router for faster navigation and server-side optimization.
+- **Clean Structure**: No more separate `server` folder—everything is managed within a single project root.
 
 ## Setup & Installation
 
-### 1. Frontend
+### 1. Configure Environment
+Create a `.env` file in the root directory (use `.env.example` as a template):
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=placesense
+```
+
+### 2. Run the Application
 ```bash
 npm install
 npm run dev
 ```
+The application will be available at `http://localhost:3000`.
 
-### 2. Backend
-1. Navigate to the `/server` directory.
-2. Run `npm install`.
-3. Create a `.env` file from the provided `.env.example`.
-4. Run `npm start` or `npm run dev`.
-
-## Environment Variables (.env)
-- `DB_HOST`: Your MySQL host (e.g., localhost)
-- `DB_USER`: Your MySQL username
-- `DB_PASSWORD`: Your MySQL password
-- `DB_NAME`: `placesense`
-- `PORT`: 5000 (standard backend port)
+## Directory Structure
+- `src/app`: Pages (`profile`, `analysis`, `predict`) and API routes.
+- `src/components`: Shared UI components like the Sidebar Navigation.
+- `src/hooks`: Custom React hooks like `useStorage`.
+- `src/lib`: Core utilities like the MySQL database connection pool.
