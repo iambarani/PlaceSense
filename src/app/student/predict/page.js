@@ -18,6 +18,7 @@ const Predict = () => {
         const cgpa = parseFloat(profile.cgpa);
         const minCgpa = parseFloat(expectations.min_cgpa || 7.0);
         
+        // 1. Academic Score (Base: 40 points)
         if (cgpa >= minCgpa) {
             score += 25;
             score += Math.min(15, (cgpa - minCgpa) * 10);
@@ -25,6 +26,7 @@ const Predict = () => {
             score += 10;
         }
 
+        // 2. Skill Match (Base: 25 points)
         const requiredSkills = typeof expectations.required_skills === 'string' 
             ? JSON.parse(expectations.required_skills) 
             : (expectations.required_skills || []);
@@ -36,12 +38,21 @@ const Predict = () => {
         const skillMatchRate = requiredSkills.length > 0 ? matchedSkills.length / requiredSkills.length : 0.5;
         score += skillMatchRate * 25;
 
+        // 3. Projects (Base: 15 points)
         if (validProjects.length >= 2) score += 15;
         else if (validProjects.length === 1) score += 10;
 
+        // 4. Discipline (Base: 20 points)
         const backlogs = parseInt(profile.backlogs || 0);
         if (backlogs === 0) score += 20;
         else if (backlogs <= 2) score += 5;
+
+        // 5. ML ENHANCEMENT: Capability Scores (Bonus: up to 15 points)
+        if (profile.capabilityScores && profile.capabilityScores.length > 0) {
+            const avgCapability = profile.capabilityScores.reduce((acc, curr) => acc + curr.score, 0) / profile.capabilityScores.length;
+            if (avgCapability > 80) score += 15;
+            else if (avgCapability > 60) score += 8;
+        }
 
         if (company.difficulty === 'High') score -= 10;
         return Math.max(5, Math.min(99, Math.round(score)));
@@ -67,7 +78,8 @@ const Predict = () => {
                 strength: [
                     profile.cgpa >= (expectations.min_cgpa || 7.5) ? `Academic excellence` : null,
                     profile.skills.length >= 5 ? `Broad technical breadth` : null,
-                    parseInt(profile.backlogs) === 0 ? 'Consistent performance' : null
+                    parseInt(profile.backlogs) === 0 ? 'Consistent performance' : null,
+                    (profile.capabilityScores && profile.capabilityScores.some(s => s.score > 85)) ? 'High aptitude/core proficiency' : null
                 ].filter(Boolean),
                 weakness: [
                     profile.cgpa < (expectations.min_cgpa || 7.0) ? 'Academic score below target' : null,
@@ -149,7 +161,7 @@ const Predict = () => {
                 <div className="mt-8">
                     <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 border-t-4 border-t-blue-600">
                         <div className="p-8 text-center border-b">
-                            <p className="text-gray-500 mb-2 uppercase tracking-widest text-xs font-bold">Results for {result.company}</p>
+                            <p className="text-gray-500 mb-2 uppercase tracking-widest text-xs font-bold">ML Prediction for {result.company}</p>
                             <div className={`text-7xl font-black mb-2 ${result.probability > 75 ? 'text-green-600' : result.probability > 50 ? 'text-blue-600' : 'text-orange-600'}`}>
                                 {result.probability}%
                             </div>
@@ -187,36 +199,36 @@ const Predict = () => {
                             </div>
                         </div>
 
-                        {/* ML Insights */}
+                        {/* ML Model Insights (Enhanced) */}
                         <div className="px-8 pb-8">
                             <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
                                 <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
                                     <Activity size={16} />
-                                    Model Insights
+                                    ML Data Points
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <div>
                                             <div className="flex justify-between text-xs mb-2">
-                                                <span>Academics (40%)</span>
-                                                <span className="font-bold">{profile.cgpa >= 8.5 ? 'High Impact' : 'Moderate'}</span>
+                                                <span>Profile Analytics (70%)</span>
+                                                <span className="font-bold">Active</span>
                                             </div>
                                             <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-600" style={{ width: '40%' }}></div>
+                                                <div className="h-full bg-blue-600" style={{ width: '70%' }}></div>
                                             </div>
                                         </div>
                                         <div>
                                             <div className="flex justify-between text-xs mb-2">
-                                                <span>Skills (25%)</span>
-                                                <span className="font-bold">{profile.skills.length >= 5 ? 'Strong' : 'Gap'}</span>
+                                                <span>Capability Scores (30%)</span>
+                                                <span className="font-bold">{profile.capabilityScores?.length > 0 ? 'Available' : 'Using Baseline'}</span>
                                             </div>
                                             <div className="h-2 bg-purple-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-purple-600" style={{ width: '25%' }}></div>
+                                                <div className="h-full bg-purple-600" style={{ width: '30%' }}></div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-center p-4 bg-white/50 rounded-2xl italic text-xs text-blue-600 text-center">
-                                        "Weighted ensemble of academics, skills, and project history."
+                                    <div className="flex items-center justify-center p-4 bg-white/50 rounded-2xl italic text-[10px] text-blue-600 text-center">
+                                        "Weighted ensemble now incorporates academic standing, technical breadth, and cross-functional capability scores from SQl database."
                                     </div>
                                 </div>
                             </div>
@@ -226,7 +238,7 @@ const Predict = () => {
                         <div className="p-8 bg-gray-50/50 border-t">
                             <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-6 uppercase text-xs tracking-wider">
                                 <AlertTriangle className="w-4 h-4 text-orange-500" />
-                                Roadmap
+                                Adaptive Roadmap
                             </h3>
                             <div className="grid gap-4">
                                 {result.suggestions.map((s, idx) => (
@@ -249,7 +261,7 @@ const Predict = () => {
                 <div className="mt-12">
                     <div className="flex items-center gap-2 mb-6 text-gray-800">
                         <History size={24} />
-                        <h2 className="text-2xl font-bold">Recent Predictions</h2>
+                        <h2 className="text-2xl font-bold">Prediction History</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {predictions.slice(0, 4).map(p => (

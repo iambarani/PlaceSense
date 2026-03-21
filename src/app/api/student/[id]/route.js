@@ -17,6 +17,8 @@ export async function GET(request, { params }) {
         const [projects] = await pool.query('SELECT * FROM student_projects WHERE student_id = ?', [id]);
         const [certifications] = await pool.query('SELECT * FROM certifications WHERE student_id = ?', [id]);
         const [performance] = await pool.query('SELECT * FROM subject_performance WHERE student_id = ?', [id]);
+        const [capabilityScores] = await pool.query('SELECT * FROM student_capability_scores WHERE student_id = ?', [id]);
+        const [skillGap] = await pool.query('SELECT * FROM skill_gap_analysis WHERE student_id = ?', [id]);
 
         return NextResponse.json({
             ...student,
@@ -26,7 +28,9 @@ export async function GET(request, { params }) {
             skills: skills.map(s => s.skill_name),
             projects: projects,
             certifications: certifications,
-            subjectPerformance: performance
+            subjectPerformance: performance,
+            capabilityScores: capabilityScores,
+            skillGap: skillGap
         });
     } catch (error) {
         console.error(error);

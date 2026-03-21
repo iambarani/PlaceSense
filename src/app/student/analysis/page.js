@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { useStorage } from '@/hooks/useStorage';
-import { BarChart3, PieChart, Activity, CheckCircle2, XCircle } from 'lucide-react';
+import { BarChart3, PieChart, Activity, CheckCircle2, XCircle, Target, TrendingUp, Layers } from 'lucide-react';
 
 const Analysis = () => {
     const { profile, loading } = useStorage();
@@ -20,8 +20,13 @@ const Analysis = () => {
     const coreSkills = ['Java', 'Python', 'SQL', 'DBMS', 'DSA'];
     const missingCore = coreSkills.filter(s => !profile.skills.some(ps => ps.toLowerCase().includes(s.toLowerCase())));
 
+    // Advanced Data from New Tables
+    const capabilityScores = profile.capabilityScores || [];
+    const skillGapAnalysis = profile.skillGap || [];
+
     return (
         <div className="max-w-4xl mx-auto pb-20">
+            {/* Market Readiness & Advanced Capabilities */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Market Readiness */}
                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
@@ -53,14 +58,36 @@ const Analysis = () => {
                     </div>
                 </div>
 
-                {/* Skill Distribution */}
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                    <PieChart className="text-gray-200 mb-4" size={64} />
-                    <p className="text-gray-400 text-sm text-center">Interactive skill distribution chart will appear here as you add more profile data.</p>
+                {/* Capability Scores (from advanced SQL table) */}
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Target className="text-emerald-600" size={20} />
+                        <h3 className="font-bold text-gray-800">Capability Breakdown</h3>
+                    </div>
+                    {capabilityScores.length > 0 ? (
+                        <div className="space-y-4">
+                            {capabilityScores.map((score, idx) => (
+                                <div key={idx}>
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="text-gray-500 font-medium">{score.capability_name}</span>
+                                        <span className="font-bold text-emerald-600">{score.score}/100</span>
+                                    </div>
+                                    <div className="h-1.5 bg-gray-50 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${score.score}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-center">
+                            <Layers className="text-gray-200 mb-2" size={32} />
+                            <p className="text-xs text-gray-400">Detailed capability assessments (Aptitude, Core CS, Coding) will appear here after evaluation.</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Gap Analysis */}
+            {/* Gap Analysis (Enhanced with skill_gap_analysis table) */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8">
                 <div className="p-8 border-b bg-gray-50/50">
                     <h3 className="font-bold text-gray-800 flex items-center gap-2">
@@ -87,15 +114,26 @@ const Analysis = () => {
                         <div>
                             <h4 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <XCircle size={16} className="text-red-500" />
-                                Missing Industry Standard Skills
+                                Targeted Gaps
                             </h4>
                             <div className="space-y-3">
-                                {missingCore.length > 0 ? missingCore.map(skill => (
-                                    <div key={skill} className="flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100">
-                                        <span className="text-sm font-medium text-red-700">{skill}</span>
-                                        <span className="text-[10px] font-black uppercase text-red-400">High Priority</span>
-                                    </div>
-                                )) : <p className="text-sm text-green-600 font-medium italic">You've covered all core industry skills!</p>}
+                                {skillGapAnalysis.length > 0 ? (
+                                    skillGapAnalysis.map((gap, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100">
+                                            <span className="text-sm font-medium text-red-700">{gap.missing_skill}</span>
+                                            <span className={`text-[10px] font-black uppercase ${gap.priority === 'High' ? 'text-red-400' : 'text-orange-400'}`}>
+                                                {gap.priority || 'Priority'}
+                                            </span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    missingCore.map(skill => (
+                                        <div key={skill} className="flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100">
+                                            <span className="text-sm font-medium text-red-700">{skill}</span>
+                                            <span className="text-[10px] font-black uppercase text-red-400">High Priority</span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
@@ -104,18 +142,22 @@ const Analysis = () => {
 
             {/* Strategic Insight */}
             <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-3xl p-8 text-white shadow-xl">
-                <h3 className="text-xl font-bold mb-4">Strategic Insight (ML-Generated)</h3>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold">Strategic Insight (ML-Enhanced)</h3>
+                    <TrendingUp className="text-blue-400" size={24} />
+                </div>
                 <p className="text-blue-100 leading-relaxed opacity-90 mb-6">
-                    Based on your current profile, you exhibit strong 
-                    <span className="font-bold text-white mx-1">{academicReadiness > 80 ? 'Academic' : 'Learning'}</span>
-                    potential. Your technical breadth of 
-                    <span className="font-bold text-white mx-1">{profile.skills.length} skills</span>
-                    makes you a {profile.skills.length > 5 ? 'highly competitive' : 'promising'} candidate for 
-                    <span className="font-bold text-white mx-1">Product-based</span>
-                    roles. {missingCore.length > 0 ? `To unlock Tier-1 opportunities, we recommend prioritizing ${missingCore.join(', ')}.` : 'You have a complete set of industry-standard core skills!'}
+                    Based on your 
+                    <span className="font-bold text-white mx-1">
+                        {capabilityScores.length > 0 ? 'Integrated Capability Assessment' : 'Profile Analytics'}
+                    </span>, you exhibit strong 
+                    <span className="font-bold text-white mx-1">{academicReadiness > 80 ? 'Academic' : 'Technical'}</span>
+                    potential. {skillGapAnalysis.length > 0 ? `The data indicates minor gaps in ${skillGapAnalysis.slice(0, 2).map(g => g.missing_skill).join(' and ')}.` : 'Your baseline skills are strong.'} Specifically, you are a prime candidate for 
+                    <span className="font-bold text-white mx-1">Product-centric engineering</span>
+                    roles.
                 </p>
-                <button className="px-6 py-3 bg-white text-indigo-900 rounded-xl font-bold transition-transform active:scale-95">
-                    Download Detailed PDF Report
+                <button className="px-6 py-3 bg-white text-indigo-900 rounded-xl font-bold transition-transform active:scale-95 shadow-lg">
+                    Download Smart Analysis Report
                 </button>
             </div>
         </div>
