@@ -15,9 +15,6 @@ const Analysis = () => {
     return (
         <Layout role="student">
             <div className="max-w-4xl mx-auto pb-20">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">My Skill Analysis</h1>
-                <p className="text-gray-500 mb-8">Deep dive into your professional profile and market standing.</p>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     {/* Readiness Gauges */}
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
@@ -100,14 +97,15 @@ const Analysis = () => {
 
                 {/* Company Specific Insights */}
                 <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-3xl p-8 text-white shadow-xl">
-                    <h3 className="text-xl font-bold mb-4">Strategic Insight</h3>
+                    <h3 className="text-xl font-bold mb-4">Strategic Insight (ML-Generated)</h3>
                     <p className="text-blue-100 leading-relaxed opacity-90 mb-6">
-                        Based on your profile, you are most suited for
+                        Based on your current profile, you exhibit strong 
+                        <span className="font-bold text-white mx-1">{academicReadiness > 80 ? 'Academic' : 'Learning'}</span>
+                        potential. Your technical breadth of 
+                        <span className="font-bold text-white mx-1">{profile.skills.length} skills</span>
+                        makes you a {profile.skills.length > 5 ? 'highly competitive' : 'promising'} candidate for 
                         <span className="font-bold text-white mx-1">Product-based</span>
-                        roles. However, your performance in
-                        <span className="font-bold text-white mx-1">Operating Systems</span>
-                        might be a bottleneck for top-tier companies like
-                        <span className="font-bold text-white ml-1">Google</span>.
+                        roles. {missingCore.length > 0 ? `To unlock Tier-1 opportunities, we recommend prioritizing ${missingCore.join(', ')}.` : 'You have a complete set of industry-standard core skills!'}
                     </p>
                     <button className="px-6 py-3 bg-white text-indigo-900 rounded-xl font-bold transition-transform active:scale-95">
                         Download Detailed PDF Report

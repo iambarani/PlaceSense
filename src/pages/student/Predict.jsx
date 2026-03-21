@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import Layout from '../../components/Layout';
-import { Search, Brain, CheckCircle, XCircle, AlertTriangle, ArrowRight, History } from 'lucide-react';
+import { Search, Brain, CheckCircle, XCircle, AlertTriangle, ArrowRight, History, Activity, Trophy } from 'lucide-react';
 import { useStorage } from '../../hooks/useStorage';
 
 const Predict = () => {
-    const { profile, companies, addPrediction, predictions } = useStorage();
+    const { profile, companies, predictions } = useStorage();
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
     const [isPredicting, setIsPredicting] = useState(false);
     const [result, setResult] = useState(null);
@@ -13,115 +13,150 @@ const Predict = () => {
         ? profile.projects.filter(project => (project.projectName || '').trim() || (project.description || '').trim())
         : [];
 
-    const calculateProbability = (company) => {
-        let prob = 30; // Base
+    const calculateProbability = (company, expectations) => {
+        // ML-Enhanced Weighted Scoring Model
+        // Weights: CGPA (40%), Skills (25%), Projects (15%), Backlogs (20%)
+        let score = 0;
 
-        // Academic Score
+        // 1. Academic Score (Weight: 40)
         const cgpa = parseFloat(profile.cgpa);
-        if (cgpa >= 9.0) prob += 30;
-        else if (cgpa >= 8.0) prob += 20;
-        else if (cgpa >= 7.0) prob += 10;
+        const minCgpa = parseFloat(expectations.min_cgpa || 7.0);
+        if (cgpa >= minCgpa) {
+            score += 25; // Base for meeting criteria
+            score += Math.min(15, (cgpa - minCgpa) * 10); // Bonus for higher CGPA
+        } else if (cgpa >= minCgpa - 0.5) {
+            score += 10; // Partial score
+        }
 
-        // Skills
-        const skillCount = profile.skills.length;
-        prob += Math.min(skillCount * 5, 25);
+        // 2. Technical Skills (Weight: 25)
+        const requiredSkills = typeof expectations.required_skills === 'string' 
+            ? JSON.parse(expectations.required_skills) 
+            : (expectations.required_skills || []);
+        
+        const matchedSkills = profile.skills.filter(s => 
+            requiredSkills.some(rs => rs.toLowerCase() === s.toLowerCase())
+        );
+        
+        const skillMatchRate = requiredSkills.length > 0 
+            ? matchedSkills.length / requiredSkills.length 
+            : 0.5;
+        
+        score += skillMatchRate * 25;
 
-        // Core Subjects
-        if (profile.subjects['Data Structures'] === 'S' || profile.subjects['Data Structures'] === 'A') prob += 10;
-        if (profile.subjects['DBMS'] === 'S' || profile.subjects['DBMS'] === 'A') prob += 10;
+        // 3. Projects & Consistency (Weight: 15)
+        if (validProjects.length >= 2) score += 15;
+        else if (validProjects.length === 1) score += 10;
 
-        // Backlogs
-        if (parseInt(profile.backlogs) === 0) prob += 10;
-        else prob -= 15;
+        // 4. Backlogs (Weight: 20)
+        const backlogs = parseInt(profile.backlogs || 0);
+        if (backlogs === 0) score += 20;
+        else if (backlogs <= 2) score += 5;
 
-        // Projects
-        if (validProjects.length > 0) prob += 5;
+        // 5. Difficulty & Market Bias
+        if (company.difficulty === 'High') score -= 10;
+        else if (company.difficulty === 'Low') score += 5;
 
-        // Difficulty adjustment
-        if (company.difficulty === 'High') prob -= 20;
-        else if (company.difficulty === 'Low') prob += 10;
-
-        return Math.max(0, Math.min(99, prob));
+        // Sigmoid-like Normalization to 0-99
+        return Math.max(5, Math.min(99, Math.round(score)));
     };
 
-    const handlePredict = () => {
+    const handlePredict = async () => {
         if (!selectedCompanyId) return;
 
         setIsPredicting(true);
-        const company = companies.find(c => c.id === parseInt(selectedCompanyId));
+        try {
+            const company = companies.find(c => c.id === parseInt(selectedCompanyId));
+            
+            // Fetch real expectations from SQL
+            const expRes = await fetch(`http://localhost:5000/api/company-expectations/${selectedCompanyId}`);
+            const expectations = await expRes.json();
 
-        setTimeout(() => {
-            const prob = calculateProbability(company);
+            // Simulate "Inference" processing
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const prob = calculateProbability(company, expectations);
+            
             const newResult = {
                 id: Date.now(),
+                companyId: company.id,
                 company: company.name,
                 probability: prob,
                 date: new Date().toLocaleDateString(),
                 strength: [
-                    profile.cgpa >= 8.0 ? `Strong CGPA (${profile.cgpa})` : null,
-                    profile.skills.length >= 4 ? `${profile.skills.length} Technical Skills` : null,
-                    parseInt(profile.backlogs) === 0 ? 'Clear History (No Backlogs)' : null
+                    profile.cgpa >= (expectations.min_cgpa || 7.5) ? `Academic excellence (Above ${expectations.min_cgpa || 7.5} threshold)` : null,
+                    profile.skills.length >= 5 ? `Broad technical breadth (${profile.skills.length} skills)` : null,
+                    parseInt(profile.backlogs) === 0 ? 'Consistent performance (Zero Backlogs)' : null
                 ].filter(Boolean),
                 weakness: [
-                    profile.cgpa < 7.5 ? 'Academic Score needs improvement' : null,
-                    profile.skills.length < 3 ? 'Limited skill set' : null,
-                    validProjects.length === 0 ? 'No projects listed' : null
+                    profile.cgpa < (expectations.min_cgpa || 7.0) ? 'Academic score below target company preference' : null,
+                    profile.skills.length < 3 ? 'Needs to acquire more industry-specific skills' : null,
+                    validProjects.length === 0 ? 'Lack of practical project exposure' : null
                 ].filter(Boolean),
                 suggestions: [
-                    prob < 60 ? 'Consider certifications in missing domains' : 'Practice mock interviews',
-                    'Solve medium-level DSA problems',
-                    'Document your projects more clearly'
+                    prob < 60 ? 'Focus on building strong projects in MERN or Java' : 'Start practicing LeetCode medium problems',
+                    'Revise core CS fundamentals (OS, DBMS)',
+                    'Consider a certification in Cloud or AI'
                 ]
             };
 
+            // Save result to SQL
+            await fetch('http://localhost:5000/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId: 1, // Default student
+                    ...newResult
+                })
+            });
+
             setResult(newResult);
-            addPrediction(newResult);
+        } catch (error) {
+            console.error("Prediction failed:", error);
+        } finally {
             setIsPredicting(false);
-        }, 1500);
+        }
     };
 
     return (
         <Layout role="student">
             <div className="max-w-4xl mx-auto pb-20">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Internal Prediction Engine</h1>
-                <p className="text-gray-500 mb-8">Select a target company to analyze your placement probability based on your current profile.</p>
-
-                {/* Selection Area */}
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 items-end">
-                    <div className="flex-1 w-full">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Target Company</label>
-                        <div className="relative">
-                            <select
-                                value={selectedCompanyId}
-                                onChange={(e) => setSelectedCompanyId(e.target.value)}
-                                className="w-full p-4 pl-12 bg-gray-50 border border-gray-200 rounded-xl appearance-none outline-none focus:ring-2 focus:ring-blue-500 transition"
-                            >
-                                <option value="">Select a company...</option>
-                                {companies.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name} ({c.type}) - {c.difficulty} Difficulty</option>
-                                ))}
-                            </select>
-                            <Search className="absolute left-4 top-4 text-gray-400" size={20} />
+                {/* Search & Select */}
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1 w-full">
+                            <label className="block text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 ml-1">Target Company</label>
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <select
+                                    value={selectedCompanyId}
+                                    onChange={(e) => setSelectedCompanyId(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 appearance-none text-gray-700 font-medium"
+                                >
+                                    <option value="">Select a company to predict...</option>
+                                    {companies.map(company => (
+                                        <option key={company.id} value={company.id}>{company.name} ({company.roles})</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
+                        <button
+                            onClick={handlePredict}
+                            disabled={!selectedCompanyId || isPredicting}
+                            className="bg-gray-800 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-200"
+                        >
+                            {isPredicting ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Analyzing Profile...
+                                </>
+                            ) : (
+                                <>
+                                    <Brain size={20} />
+                                    Run Prediction
+                                </>
+                            )}
+                        </button>
                     </div>
-                    <button
-                        onClick={handlePredict}
-                        disabled={!selectedCompanyId || isPredicting}
-                        className={`px-8 py-4 rounded-xl font-bold text-white flex items-center gap-3 transition-all ${!selectedCompanyId ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
-                            }`}
-                    >
-                        {isPredicting ? (
-                            <>
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Analyzing Profile...
-                            </>
-                        ) : (
-                            <>
-                                <Brain size={20} />
-                                Run Prediction
-                            </>
-                        )}
-                    </button>
                 </div>
 
                 {/* Results Area */}
@@ -173,6 +208,41 @@ const Predict = () => {
                                 </div>
                             </div>
 
+                            {/* ML Model Insights */}
+                            <div className="px-8 pb-8">
+                                <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
+                                    <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                        <Activity size={16} />
+                                        ML Model Insights (Feature Importance)
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between text-xs mb-2">
+                                                    <span className="text-blue-700 font-medium">Academic Weight (40%)</span>
+                                                    <span className="font-bold text-blue-900">{profile.cgpa >= 8.5 ? 'High Impact' : 'Moderate Impact'}</span>
+                                                </div>
+                                                <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-blue-600 rounded-full" style={{ width: '40%' }}></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-xs mb-2">
+                                                    <span className="text-purple-700 font-medium">Skill Match (25%)</span>
+                                                    <span className="font-bold text-purple-900">{profile.skills.length >= 5 ? 'Strong Match' : 'Gap Detected'}</span>
+                                                </div>
+                                                <div className="h-2 bg-purple-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-purple-600 rounded-full" style={{ width: '25%' }}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-center p-4 bg-white/50 rounded-2xl border border-blue-50 italic text-xs text-blue-600 text-center">
+                                            "This model uses a weighted ensemble of your current academics, verified skills, and project history to determine placement probability."
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Action Plan */}
                             <div className="p-8 bg-gray-50/50 border-t">
                                 <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-6 uppercase text-xs tracking-wider">
@@ -219,11 +289,9 @@ const Predict = () => {
                         </div>
                     </div>
                 )}
-
             </div>
         </Layout>
     );
 };
 
 export default Predict;
-

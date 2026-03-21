@@ -62,77 +62,71 @@ const DEFAULT_COMPANIES = [
     { id: 3, name: 'Zoho', roles: 'Software Developer', ctc: '8.4 LPA', type: 'Product', difficulty: 'Medium' },
 ];
 
+const API_BASE_URL = 'http://localhost:5000/api';
+const STUDENT_ID = 1;
+
 export const useStorage = () => {
-    const [profile, setProfile] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
-        if (!saved) return DEFAULT_PROFILE;
+    const [profile, setProfile] = useState(DEFAULT_PROFILE);
+    const [companies, setCompanies] = useState(DEFAULT_COMPANIES);
+    const [predictions, setPredictions] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-        const parsed = JSON.parse(saved);
-        const normalizedProjects = Array.isArray(parsed.projects)
-            ? parsed.projects.map(project => ({
-                id: project.id || Date.now() + Math.random(),
-                projectName: project.projectName || '',
-                role: project.role || 'Team Member',
-                techStack: Array.isArray(project.techStack) ? project.techStack : [],
-                description: project.description || ''
-            }))
-            : typeof parsed.projects === 'string' && parsed.projects.trim().length > 0
-                ? [{
-                    id: Date.now() + Math.random(),
-                    projectName: '',
-                    role: 'Team Member',
-                    techStack: [],
-                    description: parsed.projects
-                }]
-                : DEFAULT_PROFILE.projects;
+    // Initial Load
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch Profile
+                const profileRes = await fetch(`${API_BASE_URL}/student/${STUDENT_ID}`);
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    setProfile(profileData);
+                }
 
-        const normalizedCertifications = Array.isArray(parsed.certifications)
-            ? parsed.certifications.map(certification => ({
-                id: certification.id || Date.now() + Math.random(),
-                certificationName: certification.certificationName || '',
-                issuingOrganization: certification.issuingOrganization || '',
-                year: certification.year || '',
-                certificateType: certification.certificateType || 'Course'
-            }))
-            : DEFAULT_PROFILE.certifications;
+                // Fetch Companies
+                const companiesRes = await fetch(`${API_BASE_URL}/companies`);
+                if (companiesRes.ok) {
+                    const companiesData = await companiesRes.json();
+                    setCompanies(companiesData);
+                }
 
-        return {
-            ...DEFAULT_PROFILE,
-            ...parsed,
-            semesterGpa: {
-                ...DEFAULT_PROFILE.semesterGpa,
-                ...(parsed.semesterGpa || {})
-            },
-            subjects: {
-                ...DEFAULT_PROFILE.subjects,
-                ...(parsed.subjects || {})
-            },
-            projects: normalizedProjects.length > 0 ? normalizedProjects : DEFAULT_PROFILE.projects,
-            certifications: normalizedCertifications.length > 0 ? normalizedCertifications : DEFAULT_PROFILE.certifications
+                // Fetch Predictions
+                const predictionsRes = await fetch(`${API_BASE_URL}/predictions/${STUDENT_ID}`);
+                if (predictionsRes.ok) {
+                    const predictionsData = await predictionsRes.json();
+                    setPredictions(predictionsData);
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
+            }
         };
-    });
 
-    const [companies, setCompanies] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEYS.COMPANIES);
-        return saved ? JSON.parse(saved) : DEFAULT_COMPANIES;
-    });
+        fetchData();
+    }, []);
 
-    const [predictions, setPredictions] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEYS.PREDICTIONS);
-        return saved ? JSON.parse(saved) : [];
-    });
+    // Save Profile to SQL when changed
+    const saveProfile = async (updatedProfile) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/student/${STUDENT_ID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedProfile)
+            });
+            if (!response.ok) throw new Error('Failed to save profile');
+        } catch (error) {
+            console.error("Error saving profile:", error);
+        }
+    };
 
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
-    }, [profile]);
-
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.COMPANIES, JSON.stringify(companies));
-    }, [companies]);
-
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.PREDICTIONS, JSON.stringify(predictions));
-    }, [predictions]);
+    // Proxy setProfile to also save to backend
+    const updateProfile = (newProfileOrFn) => {
+        setProfile(prev => {
+            const next = typeof newProfileOrFn === 'function' ? newProfileOrFn(prev) : newProfileOrFn;
+            saveProfile(next);
+            return next;
+        });
+    };
 
     const addCompany = (company) => {
         setCompanies(prev => [...prev, { ...company, id: Date.now() }]);
@@ -148,11 +142,12 @@ export const useStorage = () => {
 
     return {
         profile,
-        setProfile,
+        setProfile: updateProfile,
         companies,
         addCompany,
         deleteCompany,
         predictions,
-        addPrediction
+        addPrediction,
+        loading
     };
 };
