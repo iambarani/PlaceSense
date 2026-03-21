@@ -20,10 +20,20 @@ const createEmptyCertification = () => ({
 });
 
 const StudentProfile = () => {
-    const { profile, setProfile } = useStorage();
+    const { profile, setProfile, loading } = useStorage();
     const [newSkill, setNewSkill] = useState('');
     const [isSemesterOpen, setIsSemesterOpen] = useState(true);
     const [projectTechInput, setProjectTechInput] = useState({});
+
+    if (loading) {
+        return (
+            <Layout role="student">
+                <div className="flex items-center justify-center h-[60vh]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+            </Layout>
+        );
+    }
 
     const handleBasicChange = (field, value) => {
         setProfile(prev => ({ ...prev, [field]: value }));
@@ -154,13 +164,9 @@ const StudentProfile = () => {
     return (
         <Layout role="student">
             <div className="max-w-4xl mx-auto pb-20">
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
-                        <p className="text-gray-500">Keep your academic and skill data updated for better predictions.</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-bold border border-green-100">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="flex justify-end mb-4">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-[10px] font-bold border border-green-100 shadow-sm">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                         Auto-saving to Local
                     </div>
                 </div>
