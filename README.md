@@ -1,16 +1,36 @@
-# React + Vite
+# PlaceSense - Advanced Placement Prediction System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+PlaceSense is a modernized placement preparation and prediction platform for students and faculty. It features a robust SQL backend and an ML-enhanced prediction engine to help students identify their readiness for top-tier companies.
 
-Currently, two official plugins are available:
+## Recent Updates (March 2026)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🚀 SQL Backend Integration
+- **Node.js/Express Server**: A new full-stack backend handles data persistence via MySQL.
+- **Relational Data Mapping**: Student profiles are now constructed from multiple joined tables including `students`, `school_academics`, `college_academics`, and `student_experience`.
+- **RESTful API**: Professional API endpoints for profile management, company lookups, and prediction history.
 
-## React Compiler
+### 🧠 ML-Enhanced Placement Prediction
+- **Weighted Scoring Model**: Evaluation using weighted factors (CGPA, Skill Match, Projects) compared against real company criteria (`company_expectations`).
+- **Explainable AI (XAI)**: A new "Model Insights" section in the UI provides transparency into the prediction algorithm's decision-making process.
+- **Dynamic Action Plans**: Strategic career roadmaps are generated based on identified skill gaps and academic history.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Setup & Installation
 
-## Expanding the ESLint configuration
+### 1. Frontend
+```bash
+npm install
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 2. Backend
+1. Navigate to the `/server` directory.
+2. Run `npm install`.
+3. Create a `.env` file from the provided `.env.example`.
+4. Run `npm start` or `npm run dev`.
+
+## Environment Variables (.env)
+- `DB_HOST`: Your MySQL host (e.g., localhost)
+- `DB_USER`: Your MySQL username
+- `DB_PASSWORD`: Your MySQL password
+- `DB_NAME`: `placesense`
+- `PORT`: 5000 (standard backend port)
