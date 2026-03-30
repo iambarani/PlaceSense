@@ -8,23 +8,39 @@ const CompanyData = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [newCompany, setNewCompany] = useState({
-        name: '',
-        roles: '',
-        ctc: '',
-        type: 'Product',
-        difficulty: 'Medium'
+        company_name: '',
+        industry_type: '',
+        difficulty_level: 'Medium',
+        aptitude_weight: '',
+        programming_weight: '',
+        communication_weight: ''
     });
 
-    const handleSubmit = (e) => {
+    const handleChange = (e) => {
+        setNewCompany({ ...newCompany, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        addCompany(newCompany);
-        setIsModalOpen(false);
-        setNewCompany({ name: '', roles: '', ctc: '', type: 'Product', difficulty: 'Medium' });
+        try {
+            const response = await fetch('/api/companies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCompany)
+            });
+            if (response.ok) {
+                addCompany(newCompany);
+                setIsModalOpen(false);
+                setNewCompany({ company_name: '', industry_type: '', difficulty_level: 'Medium', aptitude_weight: '', programming_weight: '', communication_weight: '' });
+            }
+        } catch (error) {
+            console.error('Error adding company:', error);
+        }
     };
 
     const filteredCompanies = companies.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.roles.toLowerCase().includes(searchTerm.toLowerCase())
+        (c.company_name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+        (c.industry_type || "").toLowerCase().includes((searchTerm || "").toLowerCase())
     );
 
     return (
@@ -47,7 +63,7 @@ const CompanyData = () => {
                 <Search className="text-gray-400" size={20} />
                 <input
                     type="text"
-                    placeholder="Search companies or roles..."
+                    placeholder="Search companies or industries..."
                     className="flex-1 outline-none text-gray-700"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -71,26 +87,30 @@ const CompanyData = () => {
                             <Building size={24} />
                         </div>
 
-                        <h3 className="text-xl font-bold text-gray-800 mb-1">{company.name}</h3>
+                        <h3 className="text-xl font-bold text-gray-800 mb-1">{company.company_name}</h3>
                         <div className="flex gap-2 mb-4">
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-wider rounded-md">
-                                {company.type}
+                                {company.industry_type}
                             </span>
-                            <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md ${company.difficulty === 'High' ? 'bg-red-50 text-red-600' :
-                                    company.difficulty === 'Medium' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                            <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md ${company.difficulty_level === 'Hard' ? 'bg-red-50 text-red-600' :
+                                    company.difficulty_level === 'Medium' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
                                 }`}>
-                                {company.difficulty} diff
+                                {company.difficulty_level} diff
                             </span>
                         </div>
 
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between items-center text-gray-500">
-                                <span className="text-xs">Target Roles</span>
-                                <span className="font-bold text-gray-800">{company.roles}</span>
+                                <span className="text-xs">Aptitude Weight</span>
+                                <span className="font-bold text-gray-800">{company.aptitude_weight}</span>
                             </div>
                             <div className="flex justify-between items-center text-gray-500">
-                                <span className="text-xs">Est. Package</span>
-                                <span className="font-bold text-gray-900 bg-green-50 text-green-700 px-2 rounded-md">{company.ctc}</span>
+                                <span className="text-xs">Programming Weight</span>
+                                <span className="font-bold text-gray-800">{company.programming_weight}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-gray-500">
+                                <span className="text-xs">Communication Weight</span>
+                                <span className="font-bold text-gray-800">{company.communication_weight}</span>
                             </div>
                         </div>
 
@@ -114,24 +134,38 @@ const CompanyData = () => {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                                <input required type="text" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.name} onChange={e => setNewCompany({ ...newCompany, name: e.target.value })} placeholder="e.g. Microsoft" />
+                                <input required type="text" name="company_name" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.company_name} onChange={handleChange} placeholder="e.g. Microsoft" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Target Roles</label>
-                                <input required type="text" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.roles} onChange={e => setNewCompany({ ...newCompany, roles: e.target.value })} placeholder="e.g. SDE, Data Analyst" />
-                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Package (CTC)</label>
-                                    <input required type="text" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.ctc} onChange={e => setNewCompany({ ...newCompany, ctc: e.target.value })} placeholder="e.g. 12 LPA" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Industry Type</label>
+                                    <input required type="text" name="industry_type" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.industry_type} onChange={handleChange} placeholder="e.g. Technology" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
-                                    <select className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none bg-white font-medium" value={newCompany.difficulty} onChange={e => setNewCompany({ ...newCompany, difficulty: e.target.value })}>
-                                        <option>Low</option>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty Level</label>
+                                    <select name="difficulty_level" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none bg-white font-medium" value={newCompany.difficulty_level} onChange={handleChange}>
+                                        <option>Easy</option>
                                         <option>Medium</option>
-                                        <option>High</option>
+                                        <option>Hard</option>
                                     </select>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Company Expectations</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Aptitude Weight</label>
+                                        <input required type="number" name="aptitude_weight" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.aptitude_weight} onChange={handleChange} placeholder="e.g. 30" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Programming Weight</label>
+                                        <input required type="number" name="programming_weight" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.programming_weight} onChange={handleChange} placeholder="e.g. 40" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Communication Weight</label>
+                                        <input required type="number" name="communication_weight" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none" value={newCompany.communication_weight} onChange={handleChange} placeholder="e.g. 30" />
+                                    </div>
                                 </div>
                             </div>
                             <button type="submit" className="w-full py-4 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 shadow-lg shadow-purple-100 transition-all active:scale-[0.98] mt-4">
