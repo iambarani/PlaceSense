@@ -13,102 +13,45 @@ const Predict = () => {
         ? profile.projects.filter(project => (project.projectName || '').trim() || (project.description || '').trim())
         : [];
 
-    const calculateProbability = (company, expectations) => {
-        // ML-Enhanced Weighted Scoring Model
-        // Weights: CGPA (40%), Skills (25%), Projects (15%), Backlogs (20%)
-        let score = 0;
-
-        // 1. Academic Score (Weight: 40)
-        const cgpa = parseFloat(profile.cgpa);
-        const minCgpa = parseFloat(expectations.min_cgpa || 7.0);
-        if (cgpa >= minCgpa) {
-            score += 25; // Base for meeting criteria
-            score += Math.min(15, (cgpa - minCgpa) * 10); // Bonus for higher CGPA
-        } else if (cgpa >= minCgpa - 0.5) {
-            score += 10; // Partial score
-        }
-
-        // 2. Technical Skills (Weight: 25)
-        const requiredSkills = typeof expectations.required_skills === 'string' 
-            ? JSON.parse(expectations.required_skills) 
-            : (expectations.required_skills || []);
-        
-        const matchedSkills = profile.skills.filter(s => 
-            requiredSkills.some(rs => rs.toLowerCase() === s.toLowerCase())
-        );
-        
-        const skillMatchRate = requiredSkills.length > 0 
-            ? matchedSkills.length / requiredSkills.length 
-            : 0.5;
-        
-        score += skillMatchRate * 25;
-
-        // 3. Projects & Consistency (Weight: 15)
-        if (validProjects.length >= 2) score += 15;
-        else if (validProjects.length === 1) score += 10;
-
-        // 4. Backlogs (Weight: 20)
-        const backlogs = parseInt(profile.backlogs || 0);
-        if (backlogs === 0) score += 20;
-        else if (backlogs <= 2) score += 5;
-
-        // 5. Difficulty & Market Bias
-        if (company.difficulty === 'High') score -= 10;
-        else if (company.difficulty === 'Low') score += 5;
-
-        // Sigmoid-like Normalization to 0-99
-        return Math.max(5, Math.min(99, Math.round(score)));
-    };
-
     const handlePredict = async () => {
         if (!selectedCompanyId) return;
 
         setIsPredicting(true);
         try {
-            const company = companies.find(c => c.id === parseInt(selectedCompanyId));
-            
-            // Fetch real expectations from SQL
-            const expRes = await fetch(`http://localhost:5000/api/company-expectations/${selectedCompanyId}`);
-            const expectations = await expRes.json();
+            const handlePredict = async () => {
+    if (!selectedCompanyId) return;
 
-            // Simulate "Inference" processing
-            await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsPredicting(true);
 
-            const prob = calculateProbability(company, expectations);
-            
-            const newResult = {
-                id: Date.now(),
-                companyId: company.id,
-                company: company.name,
-                probability: prob,
-                date: new Date().toLocaleDateString(),
-                strength: [
-                    profile.cgpa >= (expectations.min_cgpa || 7.5) ? `Academic excellence (Above ${expectations.min_cgpa || 7.5} threshold)` : null,
-                    profile.skills.length >= 5 ? `Broad technical breadth (${profile.skills.length} skills)` : null,
-                    parseInt(profile.backlogs) === 0 ? 'Consistent performance (Zero Backlogs)' : null
-                ].filter(Boolean),
-                weakness: [
-                    profile.cgpa < (expectations.min_cgpa || 7.0) ? 'Academic score below target company preference' : null,
-                    profile.skills.length < 3 ? 'Needs to acquire more industry-specific skills' : null,
-                    validProjects.length === 0 ? 'Lack of practical project exposure' : null
-                ].filter(Boolean),
-                suggestions: [
-                    prob < 60 ? 'Focus on building strong projects in MERN or Java' : 'Start practicing LeetCode medium problems',
-                    'Revise core CS fundamentals (OS, DBMS)',
-                    'Consider a certification in Cloud or AI'
-                ]
-            };
-
-            // Save result to SQL
-            await fetch('http://localhost:5000/api/predict', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+    try {
+        const response = await fetch(
+            "http://localhost:5000/api/predict",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
                 body: JSON.stringify({
-                    studentId: 1, // Default student
-                    ...newResult
+                    studentId: 1,
+                    companyId: selectedCompanyId
                 })
-            });
+            }
+        );
 
+        const data = await response.json();
+
+        setResult(data);
+
+    } catch (error) {
+
+        console.error(error);
+
+    } finally {
+
+        setIsPredicting(false);
+
+    }
+};
             setResult(newResult);
         } catch (error) {
             console.error("Prediction failed:", error);
